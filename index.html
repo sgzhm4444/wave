@@ -1,0 +1,263 @@
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Noise-Wave</title>
+  <link rel="stylesheet" href="./css/style.css">
+</head>
+
+<body>
+
+  <script src="js/simplex-noise.js"></script>
+  <div class="title" id='title'>
+    <p><b>Sound Wave</b></p>
+  </div>
+
+  <div class="banner" id='banner'>
+
+  </div>
+
+  <div class="info" id='info'>
+    <!-- <audio src="https://m701.music.126.net/20230424171952/051cbd8884d314192ee533583b336203/jdyyaac/555e/520e/055f/b499c604deed5ab983aa252a1f954e8f.m4a" controls="controls" preload id="music" hidden loop="true" autostart="true">
+    </audio> -->
+  </div>
+
+
+  <script type="importmap">
+        {
+        "imports": {
+            "three": "https://unpkg.com/three@0.148.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.148.0/examples/jsm/"
+        }
+        }
+    </script>
+  <script type="module">
+
+    import * as THREE from 'three';
+    import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+    import {GUI} from 'https://threejsfundamentals.org/threejs/../3rdparty/dat.gui.module.js'
+
+    var WireFrame = true;
+    var waveAmplitude = 0;
+    var xShift = 5;
+    var yShift = 5;
+    var xFlow = 3;
+    var yFlow = 3;
+
+    var listener = new THREE.AudioListener(); // 创建音频监听器
+    var audio = new THREE.Audio(listener) // 创建音频，参数是音频监听器
+    var loader = new THREE.AudioLoader(); // 创建音频加载器
+
+    var analyser;
+    var N=8192
+
+    const gui = new GUI()
+    const myObject = {
+      WireFrame: true,
+      waveAmplitude: 0.4,
+      xShift: 5,
+      yShift: 5,
+      xFlow: 3,
+      yFlow: 3,
+      playMusic: function () {
+        
+        // https://m801.music.126.net/20230424174850/0135b99d4c510cf2fed3cfa57610637d/jdyyaac/555e/520e/055f/b499c604deed5ab983aa252a1f954e8f.m4a
+        loader.load("https://dl.stream.qqmusic.qq.com/C40000021i7u1MshZK.m4a?guid=3516761342&vkey=0B5D9E1D89AC7DCA0E94A5110E686FBA7E1BC42D7AB739191B31474E5DC64BAC063A8D9966075A0F4677FE81371A6F1A0914C91C94D3694A&uin=&fromtag=120032", audioBuffer => {
+          audio.setBuffer(audioBuffer); // 设置音频源
+          audio.setLoop(true); // 设置循环播放
+          audio.setVolume(0.5); // 设置音量
+          audio.play();
+          // 创建音频分析器；参数是音频
+          analyser = new THREE.AudioAnalyser(audio,2*N);
+        })
+      }
+    };
+
+    gui.add(myObject, 'WireFrame').onChange(value => {
+      planeMaterial.wireframe = value;
+    });
+
+    // gui.add(myObject, 'waveAmplitude', 0, 10).onChange(value => {
+    //   waveAmplitude = value;
+    // })
+    gui.add(myObject, "playMusic");
+
+    // gui.close()
+    var simplex = new SimplexNoise()
+    var offsetX = 0
+    var offsetY = 0
+
+    const planeW = 200
+    const planeH = 200
+    const planeSW = 150
+    const planeSH = 150
+
+    var w = window.innerWidth;
+    var h = window.innerHeight;
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(60, w / h, 0.1, 1000);
+
+    // 设置相机位置
+    camera.position.set(-44, 28, 0);
+    scene.add(camera);
+
+    // 初始化渲染器
+    const renderer = new THREE.WebGLRenderer({
+      antialias: true,
+      alpha: true,
+      preserveDrawingBuffer: true,
+    });
+    // 设置渲染的尺寸大小
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setClearColor(0x000000, 0)
+
+    document.body.appendChild(renderer.domElement);
+
+    // 创建轨道控制器
+    const controls = new OrbitControls(camera, renderer.domElement);
+
+    const planeGeometry = new THREE.PlaneGeometry(30, 50, 50, 50);
+    const planeMaterial = new THREE.MeshLambertMaterial(
+      {
+        color: 0xAFEEEE,
+        side: THREE.DoubleSide,
+        wireframe: true,
+      },
+    );
+    const plane = new THREE.Mesh(planeGeometry, planeMaterial);
+    plane.rotation.x = - Math.PI / 2
+    scene.add(plane);
+    var clock = new THREE.Clock();
+    var FPS = 40
+    var renderT = 1 / FPS;
+    var timeS = 0;
+
+    const r = 90
+    const y = 10
+    const lightDistance = 1000
+
+    let conf = {
+      lightIntensity: 0.9,
+      light1Color: 0x0E09DC,
+      light2Color: 0x1CD1E1,
+      light3Color: 0x18C02C,
+      light4Color: 0xee3bcf
+    }
+
+    let light1 = new THREE.PointLight(conf.light1Color, conf.lightIntensity, lightDistance)
+    light1.position.set(0, y, r)
+    scene.add(light1)
+
+    let light2 = new THREE.PointLight(conf.light2Color, conf.lightIntensity, lightDistance)
+    light2.position.set(0, -y, -r)
+    scene.add(light2)
+
+    let light3 = new THREE.PointLight(conf.light3Color, conf.lightIntensity, lightDistance)
+    light3.position.set(r, y, 0)
+    scene.add(light3)
+
+    let light4 = new THREE.PointLight(conf.light4Color, conf.lightIntensity, lightDistance)
+    light4.position.set(-r, y, 0)
+    scene.add(light4)
+
+    function toggleElement(idName) {
+      var info = document.getElementById(idName);
+      if (info.style.display == 'none') {
+        info.style.display = ''
+      }
+      else {
+        info.style.display = 'none'
+      }
+    }
+
+    //update light
+    function updateLights() {
+      const time = Date.now() * 0.001
+      const d = 10
+      light1.position.x = Math.sin(time * 0.1) * d
+      light1.position.z = Math.cos(time * 0.2) * d
+      light2.position.x = Math.cos(time * 0.3) * d
+      light2.position.z = Math.sin(time * 0.4) * d
+      light3.position.x = Math.sin(time * 0.5) * d
+      light3.position.z = Math.sin(time * 0.6) * d
+      light4.position.x = Math.sin(time * 0.7) * d
+      light4.position.z = Math.cos(time * 0.8) * d
+    }
+
+    // Update
+    function update() {
+      updatePlane()
+      updateLights()
+    }
+
+    // Update
+    function updatePlane() {
+      let pos = planeGeometry.attributes.position.array
+      // offsetX += 0.01
+      // offsetY = 0
+
+      if(analyser){
+        var arr = analyser.getFrequencyData();
+
+        for (let i = 0; i < pos.length; i += 3) {
+          // let x = pos[i]
+          // let y = pos[i + 1]
+
+          // let dx = planeW / planeSW;
+          // let dy = planeH / planeSH;
+
+          // let row = Math.floor((y + 10) / dy)
+          // let col = Math.floor((x + 10) / dx)
+
+          // let tx = offsetX
+          // let ty = offsetY
+
+          // tx += row * 0.05
+          // ty += col * 0.05
+
+          // let noise = simplex.noise2D(xShift * x + xFlow * tx, yShift * y + yFlow * ty) * waveAmplitude;
+          let realSound = arr[i+2]*0.05
+
+          pos[i + 2] = realSound;
+          
+          // console.log(realSound);
+          // console.log(noise);
+        }
+      }
+      planeGeometry.attributes.position.needsUpdate = true
+
+      
+    }
+
+    function resizeWindow() {
+      w = window.innerWidth
+      h = window.innerHeight
+      renderer.setSize(w, h)
+      camera.aspect = w / h
+      camera.updateProjectionMatrix()
+    }
+
+    function render() {
+      requestAnimationFrame(render);
+      var T = clock.getDelta();
+      timeS = timeS + T;
+      // requestAnimationFrame默认调用render函数60次，通过时间判断，降低renderer.render执行频率
+      if (timeS > renderT) {
+        // 控制台查看渲染器渲染方法的调用周期，也就是间隔时间是多少
+        renderer.render(scene, camera); //执行渲染操作
+        timeS = 0;
+        update()
+        resizeWindow()
+      }
+    }
+    render()
+
+
+  </script>
+
+</body>
+
+</html>
